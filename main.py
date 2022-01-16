@@ -49,7 +49,7 @@ def simulate_classification(conf) -> pd.DataFrame:
                 X, y = gen_data()
             except ValueError:
                 X, y = gen_data()
-        logging.critical(f"Simulating for dataset {d:02d}. Shape: {X.shape}")
+        logging.critical(f"Simulating for dataset {d:03d}. Shape: {X.shape}")
         for name, model in models.CLASSIFICATION:
             out = model_selection.cross_validate(
                 model, X, y,
