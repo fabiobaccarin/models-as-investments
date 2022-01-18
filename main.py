@@ -11,11 +11,14 @@ import numpy as np
 import models
 import yaml
 from sklearn import datasets, model_selection
+from datetime import datetime as dt
 
 logging.basicConfig(
     format="[%(asctime)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
+
+TIMESTAMP = dt.today().strftime("%Y%m%d%H%M%S")
 
 def _load_conf() -> dict:
     return yaml.safe_load(open("conf.yml"))
@@ -31,42 +34,48 @@ def _make_opts(conf: dict) -> dict:
     res["n_redundant"] = 0
     return res
 
-def simulate_classification(conf) -> pd.DataFrame:
+def simulate_classification(conf):
     """Performs simulation for classification"""
     def gen_data():
-        return datasets.make_classification(
-            flip_y=np.random.rand(),
-            hypercube=False,
-            **_make_opts(conf)
-        )
+        while True:
+            try:
+                flip_y = np.random.rand()
+                X, y = datasets.make_classification(
+                    flip_y=flip_y,
+                    hypercube=False,
+                    **_make_opts(conf)
+                )
+                break
+            except ValueError:
+                continue
+        return X, y, flip_y
 
     res = []
-    logging.critical("Begin simulations")
+    logging.critical(f"Begin simulations: {conf['datasets']} datasets")
     for d in range(conf["datasets"]):
-        X = None
-        while X is None:
-            try:
-                X, y = gen_data()
-            except ValueError:
-                X, y = gen_data()
-        logging.critical(f"Simulating for dataset {d:02d}. Shape: {X.shape}")
+        X, y, flip_y = gen_data()
+        logging.critical(f"Simulating for dataset {d:03d}. Shape: {X.shape}")
         for name, model in models.CLASSIFICATION:
             out = model_selection.cross_validate(
                 model, X, y,
                 scoring=conf["scoring"]["classification"],
                 cv=2,
                 return_train_score=True,
-                n_jobs=3,
+                n_jobs=-1,
             )
             res.append(
                 {
                     "model": name,
-                    "dataset": d,
                     "rows": len(X),
-                    "cols": X.shape[1]
+                    "cols": X.shape[1],
+                    "flip_y": flip_y,
                 }
                 | {
-                    f"test_{m}_avg": out[f"test_{m}"].mean()
+                    f"tr_{m}": out[f"train_{m}"].mean()
+                    for m in conf["scoring"]["classification"]
+                }
+                | {
+                    f"te_{m}": out[f"test_{m}"].mean()
                     for m in conf["scoring"]["classification"]
                 }
             )
@@ -76,5 +85,5 @@ if __name__ == "__main__":
     conf = _load_conf()
     res = simulate_classification(conf)
     logging.critical("Saving results")
-    res.to_csv(f"results/file{conf['file_id']}.csv")
+    res.to_csv(f"results/{TIMESTAMP}.csv")
     logging.critical("End of execution")
