@@ -86,5 +86,5 @@ if __name__ == "__main__":
     conf = _load_conf()
     res = simulate_classification(conf)
     logging.critical("Saving results")
-    res.to_csv(f"results/{FILE_ID}.csv")
+    res.to_csv(f"results/{FILE_ID}.csv", index=False)
     logging.critical("End of execution")
