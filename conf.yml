@@ -1,5 +1,5 @@
 # Options for configuring the exercise
-datasets: 1_200
+datasets: 100
 
 n_samples:
   low: 5_000
