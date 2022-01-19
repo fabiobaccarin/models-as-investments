@@ -6,19 +6,19 @@ Outputs: results.csv
 """
 
 import logging
+import uuid
 import pandas as pd
 import numpy as np
 import models
 import yaml
 from sklearn import datasets, model_selection
-from datetime import datetime as dt
 
 logging.basicConfig(
     format="[%(asctime)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-TIMESTAMP = dt.today().strftime("%Y%m%d%H%M%S")
+FILE_ID = uuid.uuid4().hex
 
 def _load_conf() -> dict:
     return yaml.safe_load(open("conf.yml"))
@@ -48,12 +48,12 @@ def simulate_classification(conf):
                 break
             except ValueError:
                 continue
-        return X, y, flip_y
+        return X, y, flip_y, uuid.uuid4().hex
 
     res = []
     logging.critical(f"Begin simulations: {conf['datasets']} datasets")
     for d in range(conf["datasets"]):
-        X, y, flip_y = gen_data()
+        X, y, flip_y, df_id = gen_data()
         logging.critical(f"Simulating for dataset {d:03d}. Shape: {X.shape}")
         for name, model in models.CLASSIFICATION:
             out = model_selection.cross_validate(
@@ -65,6 +65,7 @@ def simulate_classification(conf):
             )
             res.append(
                 {
+                    "dataset": df_id,
                     "model": name,
                     "rows": len(X),
                     "cols": X.shape[1],
@@ -85,5 +86,5 @@ if __name__ == "__main__":
     conf = _load_conf()
     res = simulate_classification(conf)
     logging.critical("Saving results")
-    res.to_csv(f"results/{TIMESTAMP}.csv")
+    res.to_csv(f"results/{FILE_ID}.csv")
     logging.critical("End of execution")
