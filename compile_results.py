@@ -10,7 +10,7 @@ def main():
     results = pathlib.Path(__file__).parent.joinpath("results")
 
     df = pd.concat([
-        pd.read_csv(file, index_col=0)
+        pd.read_csv(file, index_col=["dataset", "model"])
         for file in results.iterdir()
     ])
 
